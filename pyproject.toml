@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reportstudio"
+version = "0.1.0"
+description = "ReportStudio Community Edition - static report generator"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "pandas>=2.2.0",
+  "python-dateutil>=2.9.0",
+  "openpyxl>=3.1.0",
+  "python-pptx>=1.0.2",
+  "reportlab>=4.2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0",
+  "ruff>=0.6.0",
+  "mypy>=1.10.0",
+  "pandas-stubs",
+  "types-python-dateutil",
+]
+
+[project.scripts]
+reportstudio = "reportstudio.cli.main:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "C4"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+mypy_path = ["src"]
+packages = ["reportstudio"]
+
+[[tool.mypy.overrides]]
+module = ["pandas", "pandas.*", "openpyxl", "openpyxl.*", "pptx", "pptx.*", "reportlab", "reportlab.*"]
+ignore_missing_imports = true
