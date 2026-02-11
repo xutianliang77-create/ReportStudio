@@ -133,6 +133,22 @@ def run_pipeline(req: RunRequest) -> RunResult:
             }
         breakdowns.append(b)
 
+    # Export governance warnings (so CLI JSON captures them), matching XLSX exporter limits.
+    TREND_EXPORT_MAX_ROWS = 5000
+    BREAKDOWN_EXPORT_MAX_ROWS = 2000
+    if trend_rows and len(trend_rows) > TREND_EXPORT_MAX_ROWS:
+        warnings.append(
+            f"Trend table: exported first {TREND_EXPORT_MAX_ROWS} rows "
+            f"(truncated from {len(trend_rows)})."
+        )
+    for b in breakdowns:
+        rows_any = b.get("rows")
+        if isinstance(rows_any, list) and len(rows_any) > BREAKDOWN_EXPORT_MAX_ROWS:
+            warnings.append(
+                f"Breakdown table: exported first {BREAKDOWN_EXPORT_MAX_ROWS} rows "
+                f"(truncated from {len(rows_any)})."
+            )
+
     formats = [f for f in req.formats if f in {"xlsx", "pdf", "pptx"}]
     if not formats:
         formats = ["xlsx", "pdf", "pptx"]
