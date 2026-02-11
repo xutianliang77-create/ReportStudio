@@ -20,6 +20,22 @@ def _parse_args() -> RunRequest:
     )
     p.add_argument("--topn", type=int, default=10, help="TopN for breakdown sections")
     p.add_argument(
+        "--dim",
+        default=None,
+        help=(
+            "Optional dimension column to use for TopN breakdown "
+            "(default: first detected dimension)"
+        ),
+    )
+    p.add_argument(
+        "--measure",
+        default=None,
+        help=(
+            "Optional numeric column to use for TopN breakdown "
+            "(default: first detected numeric)"
+        ),
+    )
+    p.add_argument(
         "--grain",
         default="month",
         choices=["day", "week", "month"],
@@ -42,6 +58,8 @@ def _parse_args() -> RunRequest:
         topn=ns.topn,
         grain=ns.grain,
         time_range=ns.time_range,
+        dim=ns.dim,
+        measure=ns.measure,
     )
 
 

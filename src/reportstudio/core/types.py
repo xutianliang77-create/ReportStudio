@@ -13,6 +13,8 @@ class RunRequest:
     topn: int = 10
     grain: str = "month"
     time_range: str | None = None
+    dim: str | None = None
+    measure: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

@@ -90,11 +90,48 @@ def run_pipeline(req: RunRequest) -> RunResult:
 
     breakdowns: list[dict[str, Any]] = []
     if schema.dimension_columns and schema.number_columns:
-        dim = schema.dimension_columns[0]
-        measure = schema.number_columns[0]
-        bd = build_topn_breakdown(df, dim=dim, measure=measure, topn=req.topn)
+        dim = req.dim or schema.dimension_columns[0]
+        measure = req.measure or schema.number_columns[0]
+
+        if dim not in schema.dimension_columns:
+            warnings.append(
+                f"Requested dim={dim} not in detected dimensions; "
+                f"defaulting to {schema.dimension_columns[0]}"
+            )
+            dim = schema.dimension_columns[0]
+        if measure not in schema.number_columns:
+            warnings.append(
+                f"Requested measure={measure} not in detected numeric columns; "
+                f"defaulting to {schema.number_columns[0]}"
+            )
+            measure = schema.number_columns[0]
+
+        bd = build_topn_breakdown(
+            df,
+            dim=dim,
+            measure=measure,
+            topn=req.topn,
+            date_col=schema.date_column,
+            grain=req.grain,
+        )
         warnings.extend(bd.warnings)
-        breakdowns.append({"dim": dim, "measure": measure, "rows": bd.df.to_dict(orient="records")})
+
+        b: dict[str, Any] = {
+            "dim": dim,
+            "measure": measure,
+            "rows": bd.df.to_dict(orient="records"),
+        }
+        if bd.change is not None:
+            b["change"] = {
+                "period_prev": _jsonable(bd.change.period_prev),
+                "period_last": _jsonable(bd.change.period_last),
+                "total_prev": bd.change.total_prev,
+                "total_last": bd.change.total_last,
+                "total_delta": bd.change.total_delta,
+                "top_positive": bd.change.df_pos.to_dict(orient="records"),
+                "top_negative": bd.change.df_neg.to_dict(orient="records"),
+            }
+        breakdowns.append(b)
 
     formats = [f for f in req.formats if f in {"xlsx", "pdf", "pptx"}]
     if not formats:
@@ -120,8 +157,14 @@ def run_pipeline(req: RunRequest) -> RunResult:
                 out_dir,
                 "reportstudio_brief.pdf",
                 title=title,
+                spec=asdict(spec),
+                kpis=kpis,
+                trend_rows=trend_rows,
+                breakdowns=breakdowns,
                 highlights=insight_pack.highlights,
                 risks=insight_pack.risks,
+                actions=insight_pack.actions,
+                warnings=warnings,
             )
             artifacts.append(Artifact(format="pdf", path=p.path))
         except Exception as exc:
@@ -129,7 +172,18 @@ def run_pipeline(req: RunRequest) -> RunResult:
 
     if "pptx" in formats:
         try:
-            ppt = export_pptx(out_dir, "reportstudio_deck.pptx", title=title, kpis=kpis)
+            ppt = export_pptx(
+                out_dir,
+                "reportstudio_deck.pptx",
+                title=title,
+                spec=asdict(spec),
+                kpis=kpis,
+                trend_rows=trend_rows,
+                breakdowns=breakdowns,
+                highlights=insight_pack.highlights,
+                risks=insight_pack.risks,
+                actions=insight_pack.actions,
+            )
             artifacts.append(Artifact(format="pptx", path=ppt.path))
         except Exception as exc:
             warnings.append(f"PPTX export skipped: {type(exc).__name__}: {exc}")
