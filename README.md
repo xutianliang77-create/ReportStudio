@@ -13,6 +13,8 @@ pip install -e '.[dev]'
 
 ## Usage
 
+详见：[`docs/INSTALL_AND_USAGE.md`](docs/INSTALL_AND_USAGE.md)
+
 ```bash
 reportstudio --file ./data.xlsx --prompt "生成月报" \
   --out-dir ./artifacts \
