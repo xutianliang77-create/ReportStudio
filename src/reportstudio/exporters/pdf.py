@@ -217,14 +217,44 @@ def export_pdf(
         rows_any = b0.get("rows", [])
         c.setFont(base_font, 11)
         c.drawString(40, h - 110, f"Top breakdown by {dim} (measure: {measure})")
+
+        # If breakdown rows contain share, render a pie chart (best-effort).
+        if isinstance(rows_any, list) and rows_any and any("share" in r for r in rows_any):
+            from reportlab.graphics.charts.piecharts import Pie
+
+            top = rows_any[:8]
+            labels = [str(r.get("category") or r.get(dim) or r.get("dim") or "")[:18] for r in top]
+            values = []
+            for r in top:
+                try:
+                    values.append(float(r.get("value", 0.0)))
+                except Exception:
+                    values.append(0.0)
+
+            d = Drawing(520, 240)
+            pie = Pie()
+            pie.x = 40
+            pie.y = 20
+            pie.width = 220
+            pie.height = 220
+            pie.data = values
+            pie.labels = labels
+            pie.slices.strokeWidth = 0.5
+            pie.slices[0].fillColor = colors.HexColor("#2b6cb0")
+            if len(values) > 1:
+                pie.slices[1].fillColor = colors.HexColor("#ed8936")
+            if len(values) > 2:
+                pie.slices[2].fillColor = colors.HexColor("#38a169")
+            d.add(pie)
+            d.drawOn(c, 40, h - 360)
+
         if isinstance(rows_any, list) and rows_any:
-            # infer columns
             row0 = rows_any[0]
             cols = list(row0.keys())
-            cols = cols[:3] if len(cols) > 3 else cols
+            cols = cols[:4] if len(cols) > 4 else cols
             bd_rows = [[fmt(r.get(col, ""))[:22] for col in cols] for r in rows_any[:18]]
-            widths = [180.0, 180.0, 160.0][: len(cols)]
-            simple_table(cols, bd_rows, x0=40, y0=h - 140, col_widths=widths)
+            widths = [160.0, 140.0, 120.0, 90.0][: len(cols)]
+            simple_table(cols, bd_rows, x0=40, y0=h - 390, col_widths=widths)
         else:
             c.drawString(40, h - 140, "No breakdown rows available.")
     else:

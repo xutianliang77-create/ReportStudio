@@ -30,6 +30,9 @@ def run_pipeline(req: RunRequest) -> RunResult:
 
     df = load_table(req.file)
 
+    # Keep a raw copy for template-specific heuristics before schema casting mutates columns.
+    df_raw = df.copy()
+
     schema = guess_schema(df)
     warnings.extend(schema.warnings)
 
@@ -88,7 +91,47 @@ def run_pipeline(req: RunRequest) -> RunResult:
         )
         trend_rows = [{str(k): _jsonable(v) for k, v in r.items()} for r in raw_rows]
 
+    def _budget_category_breakdown(frame: pd.DataFrame) -> dict[str, Any] | None:
+        # Heuristic for the provided budget template: columns include 序号 / 设备及软件名称 / 总价
+        if not {"序号", "设备及软件名称", "总价"}.issubset(set(frame.columns)):
+            return None
+
+        seq = frame["序号"].astype(str)
+        name = frame["设备及软件名称"].astype(str)
+        total = pd.to_numeric(frame["总价"], errors="coerce")
+
+        # Top-level category rows look like: 序号="（一）" and name like "硬件设备"
+        is_cat = seq.str.match(r"^（.+）$") & total.isna() & name.notna()
+        cats = name.where(is_cat)
+        cat_ffill = cats.ffill()
+
+        item_mask = total.notna() & cat_ffill.notna()
+        if item_mask.sum() == 0:
+            return None
+
+        grp = total[item_mask].groupby(cat_ffill[item_mask]).sum().sort_values(ascending=False)
+        overall = float(grp.sum()) if pd.notna(grp.sum()) else 0.0
+        rows = [
+            {
+                "category": str(k),
+                "value": float(v),
+                "share": float(v) / overall if overall else 0.0,
+            }
+            for k, v in grp.items()
+        ]
+
+        return {
+            "dim": "类别",
+            "measure": "总价",
+            "rows": rows,
+            "kind": "budget_category",
+        }
+
     breakdowns: list[dict[str, Any]] = []
+    budget_bd = _budget_category_breakdown(df_raw)
+    if budget_bd is not None:
+        breakdowns.append(budget_bd)
+
     if schema.dimension_columns and schema.number_columns:
         dim = req.dim or schema.dimension_columns[0]
         measure = req.measure or schema.number_columns[0]

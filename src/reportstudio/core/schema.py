@@ -27,12 +27,23 @@ def guess_schema(df: pd.DataFrame) -> SchemaGuess:
             date_col = c
             break
 
+    def _date_looks_reasonable(dt: pd.Series) -> bool:
+        nn = dt.dropna()
+        if nn.empty:
+            return False
+        years = nn.dt.year
+        # Avoid false-positives from numeric IDs coerced into Unix epoch-ish dates.
+        if years.min() < 1990:
+            return False
+        return not years.max() > 2100
+
     if date_col is None:
         for c in df_cols:
             s = df[c]
             if s.dtype == object or pd.api.types.is_string_dtype(s):
                 converted = pd.to_datetime(s, errors="coerce", format="mixed")
-                if int(converted.notna().sum()) >= max(3, int(0.8 * len(s.dropna()))):
+                enough = int(converted.notna().sum()) >= max(3, int(0.8 * len(s.dropna())))
+                if enough and _date_looks_reasonable(converted):
                     date_col = c
                     df[c] = converted
                     warnings.append(f"Auto-detected date column: {c}")
