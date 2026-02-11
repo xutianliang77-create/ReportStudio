@@ -11,6 +11,7 @@ class RunRequest:
     out_dir: str
     formats: list[str]
     topn: int = 10
+    grain: str = "month"
     time_range: str | None = None
 
 

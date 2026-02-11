@@ -20,6 +20,12 @@ def _parse_args() -> RunRequest:
     )
     p.add_argument("--topn", type=int, default=10, help="TopN for breakdown sections")
     p.add_argument(
+        "--grain",
+        default="month",
+        choices=["day", "week", "month"],
+        help="Trend aggregation grain (default: month)",
+    )
+    p.add_argument(
         "--time-range",
         default=None,
         help="Optional time range override: YYYY-MM-DD..YYYY-MM-DD",
@@ -34,6 +40,7 @@ def _parse_args() -> RunRequest:
         out_dir=ns.out_dir,
         formats=formats,
         topn=ns.topn,
+        grain=ns.grain,
         time_range=ns.time_range,
     )
 

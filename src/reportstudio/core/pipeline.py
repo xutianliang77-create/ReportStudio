@@ -41,10 +41,10 @@ def run_pipeline(req: RunRequest) -> RunResult:
         d = df[schema.date_column]
         df = df[(d.dt.date >= tr.start) & (d.dt.date < tr.end)]
 
-    # Trend (default month)
+    # Trend
     trend_rows: list[dict[str, Any]] = []
     if schema.date_column is not None:
-        trend = build_trend(df, schema.date_column, schema.number_columns, grain="month")
+        trend = build_trend(df, schema.date_column, schema.number_columns, grain=req.grain)
         warnings.extend(trend.warnings)
         deltas, delta_w = compute_period_deltas(trend)
         warnings.extend(delta_w)
