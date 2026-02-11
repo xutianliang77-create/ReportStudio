@@ -40,3 +40,9 @@ def test_cli_smoke_generates_three_artifacts(tmp_path: Path) -> None:
 
     for a in artifacts:
         assert Path(a["path"]).exists()
+
+    # tables should exist for month grain trend and one breakdown
+    assert "tables" in payload
+    assert isinstance(payload["tables"].get("trend"), list)
+    assert isinstance(payload["tables"].get("breakdowns"), list)
+    assert payload["tables"]["breakdowns"]

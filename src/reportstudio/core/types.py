@@ -43,9 +43,16 @@ class Summary:
 
 
 @dataclass(frozen=True, slots=True)
+class Tables:
+    trend: list[dict[str, Any]] = field(default_factory=list)
+    breakdowns: list[dict[str, Any]] = field(default_factory=list)
+
+
+@dataclass(frozen=True, slots=True)
 class RunResult:
     artifacts: list[Artifact]
     summary: Summary
     spec: Spec
     warnings: list[str]
+    tables: Tables = field(default_factory=Tables)
     meta: dict[str, Any] = field(default_factory=dict)

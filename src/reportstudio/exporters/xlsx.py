@@ -17,6 +17,8 @@ def export_xlsx(
     kpis: dict[str, float],
     warnings: list[str],
     spec: dict[str, Any],
+    trend_rows: list[dict[str, Any]] | None = None,
+    breakdowns: list[dict[str, Any]] | None = None,
 ) -> XlsxArtifact:
     from openpyxl import Workbook
     from openpyxl.styles import Font
@@ -41,6 +43,28 @@ def export_xlsx(
     ws.append(["Warnings"])
     for w in warnings:
         ws.append([w])
+
+    # trend sheet
+    if trend_rows:
+        ts = wb.create_sheet("Trend")
+        if trend_rows:
+            cols = list(trend_rows[0].keys())
+            ts.append(cols)
+            for r in trend_rows[:5000]:
+                ts.append([r.get(c) for c in cols])
+
+    # breakdown sheet
+    if breakdowns:
+        bs = wb.create_sheet("Breakdowns")
+        for b in breakdowns:
+            bs.append(["dim", b.get("dim"), "measure", b.get("measure")])
+            rows = b.get("rows") or []
+            if rows:
+                cols = list(rows[0].keys())
+                bs.append(cols)
+                for r in rows[:2000]:
+                    bs.append([r.get(c) for c in cols])
+            bs.append([])
 
     # style
     for cell in ws[5]:
