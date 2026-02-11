@@ -31,8 +31,7 @@ def _parse_args() -> RunRequest:
         "--measure",
         default=None,
         help=(
-            "Optional numeric column to use for TopN breakdown "
-            "(default: first detected numeric)"
+            "Optional numeric column to use for TopN breakdown (default: first detected numeric)"
         ),
     )
     p.add_argument(

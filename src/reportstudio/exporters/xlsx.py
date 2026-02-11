@@ -42,6 +42,7 @@ def _looks_percent_col(name: str) -> bool:
 
 # (removed unused helper)
 
+
 def _set_header_style(ws: Any, header_row: int = 1) -> None:
     from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 

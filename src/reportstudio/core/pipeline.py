@@ -156,12 +156,19 @@ def run_pipeline(req: RunRequest) -> RunResult:
 
     # Exporters: best-effort; add warnings rather than crashing
     if "xlsx" in formats:
+        spec_dict = {
+            **asdict(spec),
+            "title": title,
+            "grain": req.grain,
+            "dim": req.dim,
+            "measure": req.measure,
+        }
         x = export_xlsx(
             out_dir,
             "reportstudio_summary.xlsx",
             kpis,
             warnings,
-            spec=asdict(spec),
+            spec=spec_dict,
             trend_rows=trend_rows,
             breakdowns=breakdowns,
         )
