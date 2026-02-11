@@ -58,9 +58,9 @@ def pct_change(current: float, previous: float) -> float | None:
 
 
 def compute_period_deltas(trend: TrendTable) -> tuple[dict[str, float], list[str]]:
-    """Compute MoM/WoW/YoY for each numeric column based on the last 2 points.
+    """Compute DoD/WoW/MoM (based on grain) and YoY (month-only) for numeric columns.
 
-    Returns flat dict like {"momo_sum_revenue": 0.12} and warnings.
+    Returns a flat dict like {"mom_revenue": 0.12} and warnings.
     """
 
     warnings: list[str] = []
@@ -86,13 +86,14 @@ def compute_period_deltas(trend: TrendTable) -> tuple[dict[str, float], list[str
             continue
         out[f"{label.lower()}_{c}"] = float(ch)
 
-    # YoY only makes sense on month grain and at least 13 points (or same month last year)
+    # YoY: month-only, requires same-month-last-year point.
     if trend.grain == "month":
-        # find same month last year
-        last_idx = trend.df.index[-1]
-        target = (pd.Timestamp(last_idx) - pd.DateOffset(years=1)).to_period("M").start_time
+        last_idx = pd.Timestamp(trend.df.index[-1])
+        target = (last_idx - pd.DateOffset(years=1)).to_period("M").start_time
         if target not in trend.df.index:
-            warnings.append("YoY skipped: not enough history for same month last year.")
+            warnings.append(
+                "YoY skipped: missing same month last year. Need >=2y coverage (or explicit point)."
+            )
             return out, warnings
 
         yoy_prev = trend.df.loc[target]
