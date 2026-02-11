@@ -4,6 +4,8 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
+
 from reportstudio.core.aggregate import build_trend, compute_period_deltas
 from reportstudio.core.breakdown import build_topn_breakdown
 from reportstudio.core.insights import generate_insights
@@ -15,6 +17,12 @@ from reportstudio.core.types import Artifact, RunRequest, RunResult, Spec, Summa
 from reportstudio.exporters.pdf import export_pdf
 from reportstudio.exporters.pptx import export_pptx
 from reportstudio.exporters.xlsx import export_xlsx
+
+
+def _jsonable(v: object) -> object:
+    if isinstance(v, pd.Timestamp):
+        return v.isoformat()
+    return v
 
 
 def run_pipeline(req: RunRequest) -> RunResult:
@@ -78,7 +86,7 @@ def run_pipeline(req: RunRequest) -> RunResult:
             .rename(columns={trend.df.index.name or "__period__": "period"})
             .to_dict(orient="records")
         )
-        trend_rows = [{str(k): v for k, v in r.items()} for r in raw_rows]
+        trend_rows = [{str(k): _jsonable(v) for k, v in r.items()} for r in raw_rows]
 
     breakdowns: list[dict[str, Any]] = []
     if schema.dimension_columns and schema.number_columns:
@@ -140,4 +148,8 @@ def run_pipeline(req: RunRequest) -> RunResult:
         spec=spec,
         warnings=warnings,
         tables=tables,
+        meta={
+            "kpis": kpis,
+            "grain": req.grain,
+        },
     )
